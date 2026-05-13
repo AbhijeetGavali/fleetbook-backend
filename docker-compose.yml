@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fleetbook_postgres
+    environment:
+      POSTGRES_DB: fleetbook
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - fleetbook_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 512m
+    networks:
+      - fleetbook_net
+
+  backend:
+    image: ghcr.io/abhijeetgavali/fleetbook:latest
+    container_name: fleetbook_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fleetbook
+
+      PORT: 3000
+      NODE_ENV: production
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: "7d"
+
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
+
+      WA_TOKEN: ${WA_TOKEN}
+      WA_PHONE_NUMBER_ID: ${WA_PHONE_NUMBER_ID}
+      WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN}
+
+    restart: unless-stopped
+    mem_limit: 512m
+    networks:
+      - fleetbook_net
+
+volumes:
+  fleetbook_postgres_data:
+
+networks:
+  fleetbook_net:
+    driver: bridge

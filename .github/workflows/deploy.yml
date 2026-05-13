@@ -1,0 +1,68 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: abhijeetgavali/fleetbook
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload docker-compose.yml to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY }}
+          source: ./docker-compose.yml
+          target: ~/fleetbook
+
+      - name: Build and push Docker image
+        run: |
+          echo "${{ secrets.GHCR_PAT }}" | docker login ${{ env.REGISTRY }} --username ${{ github.actor }} --password-stdin
+          docker buildx build . \
+            --platform linux/amd64 \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            --push
+
+      - name: Pull and deploy on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            APP_DIR=~/fleetbook
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+
+            export REGISTRY=${{ env.REGISTRY }}
+            export IMAGE_NAME=${{ env.IMAGE_NAME }}
+
+            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+            export CORS_ORIGIN="${{ secrets.CORS_ORIGIN }}"
+
+            export GMAIL_USER="${{ secrets.GMAIL_USER }}"
+            export GMAIL_APP_PASSWORD="${{ secrets.GMAIL_APP_PASSWORD }}"
+
+            export WA_TOKEN="${{ secrets.WA_TOKEN }}"
+            export WA_PHONE_NUMBER_ID="${{ secrets.WA_PHONE_NUMBER_ID }}"
+            export WA_WEBHOOK_VERIFY_TOKEN="${{ secrets.WA_WEBHOOK_VERIFY_TOKEN }}"
+
+            echo "Logging into Docker registry..."
+            docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GHCR_PAT }}
+            docker pull $REGISTRY/$IMAGE_NAME:latest
+
+            docker compose down --remove-orphans
+            docker compose up -d --force-recreate
+
+            echo "Running Prisma migrations..."
+            docker exec fleetbook_backend npx prisma migrate deploy
