@@ -32,6 +32,8 @@ model User {
   userSubscription  Subscription? @relation("UserSubscription")
   adminPayments    SubscriptionPayment[] @relation("AdminPayments")
   userPayments     SubscriptionPayment[] @relation("UserPayments")
+  syncQueues        SyncQueue[]   @relation("SyncQueue")
+  syncBatches       SyncBatch[]   @relation("SyncBatch")
 
   @@map("users")
 }
@@ -196,6 +198,45 @@ enum Role {
 enum RecordType {
   START
   END
+}
+
+model SyncBatch {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  batchId           String   @unique @map("batch_id")
+  totalRecords      Int      @map("total_records")
+  syncedRecords     Int      @default(0)           @map("synced_records")
+  failedRecords     Int      @default(0)           @map("failed_records")
+  status            String   @default("in_progress")
+  startedAt         DateTime @default(now())      @map("started_at")
+  completedAt       DateTime?                      @map("completed_at")
+  createdAt         DateTime @default(now())      @map("created_at")
+
+  user              User     @relation("SyncBatch", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([batchId])
+  @@map("sync_batches")
+}
+
+model SyncQueue {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  batchId           String   @map("batch_id")
+  recordType        String   @map("record_type")
+  recordId          String   @map("record_id")
+  status            String   @default("pending")
+  retries           Int      @default(0)
+  lastError         String?  @map("last_error")
+  createdAt         DateTime @default(now())    @map("created_at")
+  updatedAt         DateTime @updatedAt         @map("updated_at")
+
+  user              User     @relation("SyncQueue", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, recordId])
+  @@index([batchId])
+  @@index([userId, status])
+  @@map("sync_queue")
 }
 
 enum CategoryType {
