@@ -3,6 +3,7 @@ import { AppError } from "../../shared/middleware/errorHandler";
 import {
   createOrFindCustomer,
   createRazorpaySubscription,
+  increaseRazorpaySubscriptionQuantity,
 } from "../../services/razorpay/razorpay.service";
 import { prisma } from "../../shared/utils/prisma";
 import * as repo from "./subscription.repo";
@@ -27,28 +28,19 @@ export interface SubscriptionStatus {
 const TRIAL_DAYS = 30;
 
 export const getSubscription = async (userId: string) => {
-  const [user, subscription] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
-    repo.findByUserId(userId),
-  ]);
+  const driver = await prisma.user.findUnique({ where: { id: userId } });
+  if (!driver) throw new AppError("User not found", 404);
 
-  if (!user) throw new AppError("User not found", 404);
+  const subscription = await repo.findByAdminId(driver?.assignedToAdmin);
 
   let effectiveSubscription = subscription;
 
-  // If user is a driver under an admin, check admin's subscription
-  if (user.role === "DRIVER" && user.assignedToAdmin && !subscription) {
-    const adminSub = await repo.findByAdminId(user.assignedToAdmin);
-    effectiveSubscription = adminSub;
-  }
-
-  const trialEndFromSignup = addDays(user.createdAt, TRIAL_DAYS);
+  const trialEndFromSignup = addDays(driver.createdAt, TRIAL_DAYS);
   if (!effectiveSubscription) {
     if (isAfter(trialEndFromSignup, new Date())) {
       return {
         plan: null,
         status: "trial" as const,
-        trialEndsAt: trialEndFromSignup,
         nextBillingAt: trialEndFromSignup,
       };
     }
@@ -61,13 +53,12 @@ export const getSubscription = async (userId: string) => {
   }
 
   if (
-    effectiveSubscription.trialEndsAt &&
-    isAfter(effectiveSubscription.trialEndsAt, now)
+    effectiveSubscription.nextBillingAt &&
+    isAfter(effectiveSubscription.nextBillingAt, now)
   ) {
     return {
       plan: effectiveSubscription.plan as "monthly" | "annual",
       status: "trial" as const,
-      trialEndsAt: effectiveSubscription.trialEndsAt,
       nextBillingAt: effectiveSubscription.nextBillingAt,
       razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
       activatedAt: effectiveSubscription.activatedAt,
@@ -78,7 +69,6 @@ export const getSubscription = async (userId: string) => {
     return {
       plan: effectiveSubscription.plan as "monthly" | "annual",
       status: "active" as const,
-      trialEndsAt: effectiveSubscription.trialEndsAt,
       nextBillingAt: effectiveSubscription.nextBillingAt,
       razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
       activatedAt: effectiveSubscription.activatedAt,
@@ -88,12 +78,15 @@ export const getSubscription = async (userId: string) => {
   return {
     plan: effectiveSubscription.plan as "monthly" | "annual",
     status: "expired" as const,
-    trialEndsAt: effectiveSubscription.trialEndsAt,
     nextBillingAt: effectiveSubscription.nextBillingAt,
     razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
     activatedAt: effectiveSubscription.activatedAt,
   };
 };
+
+export const getSubscriptionByRazorpayId = async (
+  razorpaySubscriptionId: string,
+) => repo.findByRazorpayId(razorpaySubscriptionId);
 
 export const createSubscription = async (
   userId: string,
@@ -101,54 +94,33 @@ export const createSubscription = async (
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError("User not found", 404);
-  if (user.role !== "ADMIN" && user.assignedToAdmin) {
+  if (user.role !== "ADMIN" && user.assignedToAdmin !== user.id) {
     throw new AppError(
       "Drivers cannot create subscriptions. Contact your admin.",
       403,
     );
   }
 
-  // Calculate vehicle count for admin subscriptions
-  let vehicleCount = 1;
-  if (user.role === "ADMIN") {
-    const assignedDrivers = await prisma.user.findMany({
-      where: {
-        assignedToAdmin: userId,
-        role: "DRIVER",
-        assignedVehicle: { not: null },
-      },
-      select: { assignedVehicle: true },
-    });
-    const vehicles = new Set(
-      assignedDrivers
-        .filter((driver) => driver.assignedVehicle)
-        .map((driver) => driver.assignedVehicle as string),
-    ).size;
-    vehicleCount = Math.max(1, vehicles);
-  }
-
   const customerId = await createOrFindCustomer(
     user.name,
     user.email,
-    user.phone ?? undefined,
+    user.phone,
   );
+
   const razorpaySubscription = await createRazorpaySubscription(
     customerId,
     plan,
-    vehicleCount,
   );
 
-  const trialEndsAt = razorpaySubscription.trial_end
-    ? new Date(razorpaySubscription.trial_end * 1000)
-    : addDays(new Date(), TRIAL_DAYS);
+  const trialEndsAt = razorpaySubscription.start_at;
   const nextBillingAt = razorpaySubscription.current_end
     ? new Date(razorpaySubscription.current_end * 1000)
-    : undefined;
+    : new Date(
+        trialEndsAt.getTime() +
+          (plan === "monthly" ? 30 : 365) * 24 * 60 * 60 * 1000,
+      );
 
-  const existing =
-    user.role === "ADMIN"
-      ? await repo.findByAdminId(userId)
-      : await repo.findByUserId(userId);
+  const existing = await repo.findByAdminId(userId);
 
   if (existing) {
     await prisma.subscription.update({
@@ -158,20 +130,19 @@ export const createSubscription = async (
         razorpaySubscriptionId: razorpaySubscription.id,
         razorpayCustomerId: customerId,
         status: "trial",
-        trialEndsAt,
         nextBillingAt,
+        activatedAt: new Date(),
       },
     });
   } else {
     await repo.create({
-      adminId: user.role === "ADMIN" ? userId : undefined,
-      userId: user.role === "DRIVER" ? userId : undefined,
+      adminId: userId,
       plan,
       razorpaySubscriptionId: razorpaySubscription.id,
       razorpayCustomerId: customerId,
       status: "trial",
-      trialEndsAt,
       nextBillingAt,
+      activatedAt: new Date(),
     });
   }
 
@@ -180,65 +151,34 @@ export const createSubscription = async (
     checkoutId: razorpaySubscription.id,
     customerId,
     plan,
-    vehicleCount,
     totalAmount:
       razorpaySubscription.quantity * (plan === "monthly" ? 99 : 999),
-    trialEndsAt,
     nextBillingAt,
+    trialEndsAt,
   };
 };
 
-export const recordPayment = async (
-  userId: string,
-  subscriptionId: string,
-  payment: {
-    paymentId: string;
-    amount: number;
-    currency: string;
-    status: string;
-    paidAt: Date;
-  },
-) => {
+export const updateSubscriptionAddQuantity = async (userId: string) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError("User not found", 404);
-
-  const subscription =
-    user.role === "ADMIN"
-      ? await repo.findByAdminId(userId)
-      : await repo.findByUserId(userId);
-
-  if (!subscription) {
-    throw new AppError("Subscription record not found for payment", 404);
+  if (user.role !== "ADMIN" && user.assignedToAdmin !== user.id) {
+    throw new AppError(
+      "Drivers cannot update subscriptions. Contact your admin.",
+      403,
+    );
   }
 
-  await repo.createPayment({
-    subscriptionId: subscription.id,
-    adminId: user.role === "ADMIN" ? userId : undefined,
-    userId: user.role === "DRIVER" ? userId : undefined,
-    razorpayPaymentId: payment.paymentId,
-    amount: payment.amount,
-    currency: payment.currency,
-    status: payment.status,
-    paidAt: payment.paidAt,
-  });
+  const existing = await repo.findByAdminId(userId);
+  if (!existing)
+    throw new AppError("Subscription record not found for user", 404);
 
-  const updateData: any = { status: "active", activatedAt: payment.paidAt };
-  if (subscription.trialEndsAt && payment.paidAt > subscription.trialEndsAt) {
-    updateData.trialEndsAt = subscription.trialEndsAt;
-  }
-  if (subscription.nextBillingAt) {
-    updateData.nextBillingAt = subscription.nextBillingAt;
-  }
-  await prisma.subscription.update({
-    where: { id: subscription.id },
-    data: updateData,
-  });
+  await increaseRazorpaySubscriptionQuantity(existing.razorpaySubscriptionId);
 };
 
 export const updateSubscriptionStatus = async (
   razorpaySubscriptionId: string,
   status: string,
-  nextBillingAt?: Date,
+  nextBillingAt: Date,
 ) => {
   const subscription = await prisma.subscription.findUnique({
     where: { razorpaySubscriptionId },
@@ -254,26 +194,51 @@ export const updateSubscriptionStatus = async (
   });
 };
 
-export const getPayments = async (userId: string) => {
+export const recordPayment = async (
+  userId: string,
+  payment: {
+    paymentId: string;
+    amount: number;
+    currency: string;
+    status: string;
+    paidAt: Date;
+    quantity: number;
+  },
+) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError("User not found", 404);
 
-  return user.role === "ADMIN"
-    ? repo.getPaymentsByAdmin(userId)
-    : repo.getPaymentsByUser(userId);
+  const subscription = await repo.findByAdminId(userId);
+
+  if (!subscription) {
+    throw new AppError("Subscription record not found for payment", 404);
+  }
+
+  await repo.createPayment({
+    subscriptionId: subscription.id,
+    adminId: userId,
+    razorpayPaymentId: payment.paymentId,
+    amount: payment.amount,
+    currency: payment.currency,
+    status: payment.status,
+    paidAt: payment.paidAt,
+    userCount: payment.quantity || 1,
+  });
+
+  const updateData: any = { status: "active", activatedAt: payment.paidAt };
+
+  if (subscription.nextBillingAt) {
+    updateData.nextBillingAt = subscription.nextBillingAt;
+  }
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: updateData,
+  });
 };
 
-export const getSubscriptionByRazorpayId = async (
-  razorpaySubscriptionId: string,
-) => repo.findByRazorpayId(razorpaySubscriptionId);
-
-export const ensureCloudSyncAllowed = async (userId: string) => {
+export const isSubscriptionActive = async (userId: string) => {
   const sub = await getSubscription(userId);
-  if (sub.status === "active" || sub.status === "trial") return;
-  throw new AppError("Active subscription required for cloud sync", 402);
-};
-
-export const canSendWhatsApp = async (userId: string) => {
-  const sub = await getSubscription(userId);
-  return sub.status === "active" || sub.status === "trial";
+  if (sub.status === "active" || sub.status === "trial") return true;
+  throw new AppError("Active subscription required", 402);
 };

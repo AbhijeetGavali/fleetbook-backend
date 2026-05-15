@@ -1,0 +1,5 @@
+[] add redis for checking if user has subscription active to bypass db queries in `getSubscription` of subscriptions service
+[] update stats on subscriptions,. logs, reports, and all were present
+[] update reports routes entirely
+[] check cron jobs
+[] check update subscription works or not!?

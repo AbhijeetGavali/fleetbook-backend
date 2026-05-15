@@ -1,9 +1,12 @@
 import { AppError } from "../../shared/middleware/errorHandler";
 import { logger } from "../../shared/utils/logger";
+import Razorpay from "razorpay";
+import dotenv from "dotenv";
 
-const RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_API_KEY_ID;
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_API_KEY_SECRET;
+dotenv.config();
+
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_PLAN_MONTHLY_ID = process.env.RAZORPAY_PLAN_MONTHLY_ID;
 const RAZORPAY_PLAN_ANNUAL_ID = process.env.RAZORPAY_PLAN_ANNUAL_ID;
 const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -14,43 +17,6 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   );
 }
 
-const getAuthHeader = () => {
-  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-    throw new AppError("Razorpay configuration missing", 500);
-  }
-  return `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`;
-};
-
-const razorpayFetch = async <T>(path: string, options: RequestInit = {}) => {
-  const res = await fetch(`${RAZORPAY_API_BASE}${path}`, {
-    ...options,
-    headers: {
-      Authorization: getAuthHeader(),
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const body = await res.text();
-  let json: any;
-  try {
-    json = body ? JSON.parse(body) : {};
-  } catch {
-    throw new AppError("Invalid response from Razorpay", 502);
-  }
-
-  if (!res.ok) {
-    const message =
-      json?.error?.description ||
-      json?.error?.reason ||
-      json?.message ||
-      "Razorpay request failed";
-    throw new AppError(message, 502);
-  }
-
-  return json as T;
-};
-
 export const getPlanId = (plan: "monthly" | "annual") => {
   if (plan === "monthly") return RAZORPAY_PLAN_MONTHLY_ID;
   return RAZORPAY_PLAN_ANNUAL_ID;
@@ -58,26 +24,32 @@ export const getPlanId = (plan: "monthly" | "annual") => {
 
 export const createOrFindCustomer = async (
   name: string,
-  email?: string,
-  contact?: string,
+  email: string,
+  contact: string,
 ) => {
   if (!email && !contact) {
     throw new AppError("Customer email or contact is required", 400);
   }
 
-  const response = await razorpayFetch<any>("/customers", {
-    method: "POST",
-    body: JSON.stringify({
-      name,
-      email,
-      contact,
-      fail_existing: 1,
-      type: "customer",
-      notes: { app: "FleetBook" },
-    }),
+  const rzp = new Razorpay({
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET,
   });
 
-  return response.id as string;
+  const rzpCus = await (rzp.customers as any).create({
+    name,
+    email,
+    contact,
+    fail_existing: 0,
+    notes: {
+      type: "customer",
+      app: "FleetBook",
+      plan: "monthly",
+      vendorId: "Abhijeet Gavali <FleetBook>",
+    },
+  });
+
+  return rzpCus.id as string;
 };
 
 export const createRazorpaySubscription = async (
@@ -85,6 +57,11 @@ export const createRazorpaySubscription = async (
   plan: "monthly" | "annual",
   driverCount: number = 1,
 ) => {
+  const rzp = new Razorpay({
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET,
+  });
+
   const planId = getPlanId(plan);
   if (!planId) {
     throw new AppError(`Missing Razorpay plan configured for ${plan}`, 500);
@@ -94,19 +71,41 @@ export const createRazorpaySubscription = async (
     throw new AppError("Driver count must be at least 1", 400);
   }
 
-  const response = await razorpayFetch<any>("/subscriptions", {
-    method: "POST",
-    body: JSON.stringify({
-      plan_id: planId,
-      customer_notify: 1,
-      total_count: 9999,
-      quantity: driverCount,
-      trial_days: 30,
-      notes: { app: "FleetBook", driverCount: driverCount.toString() },
-    }),
+  const rzpSub = await (rzp.subscriptions as any).create({
+    plan_id: planId,
+    customer_notify: 1,
+    quantity: driverCount,
+    total_count: 9999,
+    start_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // Start after 30 days (trial period)
+    notes: {
+      app: "FleetBook",
+      driverCount: driverCount.toString(),
+      plan: plan,
+      planId: planId,
+      customerId: customerId,
+      vendorId: "Abhijeet Gavali <FleetBook>",
+    },
   });
 
-  return response as any;
+  return rzpSub;
+};
+
+export const increaseRazorpaySubscriptionQuantity = async (
+  razorpaySubscriptionId: string,
+) => {
+  const rzp = new Razorpay({
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET,
+  });
+
+  const rzpSub = await (rzp.subscriptions as any).fetch(razorpaySubscriptionId);
+  if (!rzpSub) {
+    throw new AppError("Razorpay subscription not found", 404);
+  }
+
+  await (rzp.subscriptions as any).update(razorpaySubscriptionId, {
+    quantity: rzpSub.quantity + 1,
+  });
 };
 
 export const verifyRazorpayWebhook = (

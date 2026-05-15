@@ -11,9 +11,9 @@ const logEntrySchema = z.object({
 const fuelEntrySchema = z.object({
   id: z.string(),
   date: z.string().datetime(),
-  kmAtFill: z.number().optional(),
-  gasKg: z.number().optional(),
-  costInr: z.number().optional(),
+  kmAtFill: z.number(),
+  gasKg: z.number(),
+  costInr: z.number(),
   photoUrl: z.string().url().optional(),
 });
 

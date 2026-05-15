@@ -11,30 +11,33 @@ model User {
   id               String    @id @default(uuid())
   name             String
   email            String    @unique
-  phone            String?
+  phone            String
   role             Role      @default(DRIVER)
   passwordHash     String    @map("password_hash")
-  assignedVehicle  String?   @map("assigned_vehicle")
-  assignedToAdmin  String?   @map("assigned_to_admin")
   isActive         Boolean   @default(true) @map("is_active")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  vehicle          Vehicle?  @relation(fields: [assignedVehicle], references: [id])
-  admin            User?     @relation("AdminDrivers", fields: [assignedToAdmin], references: [id], onDelete: SetNull)
+  assignedVehicle  String    @unique @map("assigned_vehicle")
+  assignedToAdmin  String    @map("assigned_to_admin")
+  
+  vehicle          Vehicle   @relation("DriverVehicle", fields: [assignedVehicle], references: [id])
+  admin            User      @relation("AdminDrivers", fields: [assignedToAdmin], references: [id], onDelete: SetNull)
+  
+  managedVehicles  Vehicle[] @relation("AdminVehicles")
   managedDrivers   User[]    @relation("AdminDrivers")
+  
   logs             Log[]
   fuelRecords      FuelRecord[]
   incomes          Income[]
   expenses         Expense[]
   reportTemplates  ReportTemplate[]
+  
   adminSubscription Subscription? @relation("AdminSubscription")
-  userSubscription  Subscription? @relation("UserSubscription")
-  adminPayments    SubscriptionPayment[] @relation("AdminPayments")
-  userPayments     SubscriptionPayment[] @relation("UserPayments")
+  adminPayments     SubscriptionPayment[] @relation("AdminPayments")
+
   syncQueues        SyncQueue[]   @relation("SyncQueue")
   syncBatches       SyncBatch[]   @relation("SyncBatch")
-
   @@map("users")
 }
 
@@ -42,13 +45,16 @@ model Vehicle {
   id        String   @id @default(uuid())
   regNo     String   @unique @map("reg_no")
   model     String?
-  fuelType  String?  @map("fuel_type")
-  lastKm    Int?     @map("last_km")
+  fuelType  String   @map("fuel_type")
+  lastKm    Int      @map("last_km")
   createdAt DateTime @default(now()) @map("created_at")
-
-  users     User[]
+  
   logs      Log[]
+  driver    User?    @relation("DriverVehicle")
 
+  assignedToAdmin  String    @map("assigned_to_admin")
+  admin            User      @relation("AdminVehicles", fields: [assignedToAdmin], references: [id])
+  
   @@map("vehicles")
 }
 
@@ -72,9 +78,9 @@ model FuelRecord {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   date      DateTime
-  kmAtFill  Float?   @map("km_at_fill")
-  gasKg     Float?   @map("gas_kg")
-  costInr   Float?   @map("cost_inr")
+  kmAtFill  Float    @map("km_at_fill")
+  gasKg     Float    @map("gas_kg")
+  costInr   Float    @map("cost_inr")
   photoUrl  String?  @map("photo_url")
   synced    Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
@@ -124,7 +130,7 @@ model Category {
   type        CategoryType
   name        String
   isActive    Boolean      @default(true) @map("is_active")
-  createdBy   String?      @map("created_by")
+  createdBy   String       @map("created_by")
   createdAt   DateTime     @default(now()) @map("created_at")
 
   incomes     Income[]
@@ -152,20 +158,17 @@ model ReportTemplate {
 
 model Subscription {
   id                      String               @id @default(uuid())
-  adminId                 String?              @unique @map("admin_id")
-  userId                  String?              @unique @map("user_id")
+  adminId                 String               @unique @map("admin_id")
   plan                    String
   razorpaySubscriptionId  String               @unique @map("razorpay_subscription_id")
-  razorpayCustomerId      String?              @map("razorpay_customer_id")
+  razorpayCustomerId      String               @map("razorpay_customer_id")
   status                  String
-  trialEndsAt             DateTime?            @map("trial_ends_at")
-  nextBillingAt           DateTime?            @map("next_billing_at")
-  activatedAt             DateTime?            @map("activated_at")
+  nextBillingAt           DateTime             @map("next_billing_at")
+  activatedAt             DateTime             @map("activated_at")
   createdAt               DateTime             @default(now()) @map("created_at")
   updatedAt               DateTime             @updatedAt @map("updated_at")
 
-  admin                   User?                @relation("AdminSubscription", fields: [adminId], references: [id], onDelete: Cascade)
-  user                    User?                @relation("UserSubscription", fields: [userId], references: [id], onDelete: Cascade)
+  admin                   User                 @relation("AdminSubscription", fields: [adminId], references: [id], onDelete: Cascade)
   payments                SubscriptionPayment[]
 
   @@map("subscriptions")
@@ -174,9 +177,9 @@ model Subscription {
 model SubscriptionPayment {
   id                    String       @id @default(uuid())
   subscriptionId        String       @map("subscription_id")
-  adminId               String?      @map("admin_id")
-  userId                String?      @map("user_id")
+  adminId               String       @map("admin_id")
   razorpayPaymentId     String       @unique @map("razorpay_payment_id")
+  userCount             Int
   amount                Int
   currency              String
   status                String
@@ -184,7 +187,6 @@ model SubscriptionPayment {
   createdAt             DateTime     @default(now()) @map("created_at")
 
   admin                  User?        @relation("AdminPayments", fields: [adminId], references: [id], onDelete: Cascade)
-  user                   User?        @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
   subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("subscription_payments")

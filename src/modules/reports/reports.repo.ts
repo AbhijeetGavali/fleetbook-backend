@@ -20,9 +20,9 @@ export const getReportData = async (userId: string, startDate: Date, endDate: Da
   return { incomes, expenses, fuel };
 };
 
-export const getFleetStats = async () => {
+export const getFleetStats = async (adminId: string) => {
   const [driverCount, vehicleCount, incomeSum, expenseSum, fuelSum] = await Promise.all([
-    prisma.user.count({ where: { role: "DRIVER", isActive: true } }),
+    prisma.user.count({ where: { role: "DRIVER", isActive: true, assignedToAdmin: adminId } }),
     prisma.vehicle.count(),
     prisma.income.aggregate({ _sum: { amount: true } }),
     prisma.expense.aggregate({ _sum: { amount: true } }),
@@ -40,9 +40,9 @@ export const getFleetStats = async () => {
 };
 
 /** Fleet report: all drivers, grouped by driver, for a date range */
-export const getFleetReport = async (startDate: Date, endDate: Date) => {
+export const getFleetReport = async (adminId: string, startDate: Date, endDate: Date) => {
   const drivers = await prisma.user.findMany({
-    where: { role: "DRIVER", isActive: true },
+    where: { role: "DRIVER", isActive: true, assignedToAdmin: adminId },
     select: { id: true, name: true, assignedVehicle: true },
     orderBy: { name: "asc" },
   });
@@ -150,11 +150,12 @@ export const createTemplate = (
 ) => prisma.reportTemplate.create({ data: { userId, name, template, engine } });
 
 export const updateTemplate = (
+  adminId: string,
   id: string,
   data: { name?: string; template?: string; engine?: string; isDefault?: boolean }
 ) => prisma.reportTemplate.update({ where: { id }, data });
 
-export const deleteTemplate = (id: string) =>
+export const deleteTemplate = (adminId: string, id: string) =>
   prisma.reportTemplate.delete({ where: { id } });
 
 

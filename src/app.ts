@@ -78,11 +78,14 @@ app.use("/api/users", usersRoutes);
 app.use("/api/vehicles", vehiclesRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/logs", logsRoutes);
-app.use("/api/reports", reportsRoutes);
-app.use("/api/sync", syncRoutes);
+
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/reports", reportsRoutes);
+
 app.use("/api/webhook/razorpay", razorpayWebhook);
 app.use("/api/webhook/whatsapp", waWebhook);
+
+app.use("/api/sync", syncRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) =>

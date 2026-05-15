@@ -5,8 +5,8 @@ import * as ctrl from "./vehicles.controller";
 const router = Router();
 router.use(authenticate);
 
-router.get("/", ctrl.getAll);
 router.get("/:id", ctrl.getById);
+router.get("/", requireAdmin, ctrl.getAll);
 router.post("/", requireAdmin, ctrl.create);
 router.patch("/:id", requireAdmin, ctrl.update);
 router.delete("/:id", requireAdmin, ctrl.remove);

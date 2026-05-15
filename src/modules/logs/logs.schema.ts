@@ -9,9 +9,9 @@ export const logSchema = z.object({
 
 export const fuelSchema = z.object({
   date: z.string().datetime(),
-  kmAtFill: z.number().min(0).optional(),
-  gasKg: z.number().min(0).optional(),
-  costInr: z.number().min(0).optional(),
+  kmAtFill: z.number().min(0),
+  gasKg: z.number().min(0),
+  costInr: z.number().min(0),
   photoUrl: z.string().url().optional(),
 });
 

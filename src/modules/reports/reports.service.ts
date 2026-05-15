@@ -13,16 +13,19 @@ import {
 import { prisma } from "../../shared/utils/prisma";
 import * as repo from "./reports.repo";
 import { logger } from "../../shared/utils/logger";
-import { canSendWhatsApp } from "../subscription/subscription.service";
+import { isSubscriptionActive } from "../subscription/subscription.service";
 
-export const getFleetStats = () => repo.getFleetStats();
+export const getFleetStats = (adminId: string) => repo.getFleetStats(adminId);
 
 export const generateAndSendReport = async (
   userId: string,
   startDate: Date,
   endDate: Date,
+  requesterId: string,
 ) => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: requesterId !== userId ? { id: userId, assignedToAdmin: requesterId } : { id: userId },
+  });
   const { incomes, expenses, fuel } = await repo.getReportData(
     userId,
     startDate,
@@ -114,7 +117,7 @@ export const generateAndSendReport = async (
   }
 
   // ── WhatsApp (template message with PDF header) ───────────────────────────
-  const allowWhatsApp = await canSendWhatsApp(user.id);
+  const allowWhatsApp = await isSubscriptionActive(user.id);
   if (user.phone && allowWhatsApp) {
     try {
       await sendWhatsAppReport({
@@ -145,7 +148,12 @@ export const generateAndSendReport = async (
 };
 
 const sendReportToUser = async (
-  user: { id: string; name: string; email?: string | null; phone?: string | null },
+  user: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+  },
   reportData: {
     totalRevenue: number;
     totalExpense: number;
@@ -215,7 +223,7 @@ const sendReportToUser = async (
     });
   }
 
-  const allowWhatsApp = await canSendWhatsApp(user.id);
+  const allowWhatsApp = await isSubscriptionActive(user.id);
   if (user.phone && allowWhatsApp) {
     try {
       await sendWhatsAppReport({
@@ -246,9 +254,13 @@ export const generateAndSendAdminConsolidatedReport = async (
   endDate: Date,
 ) => {
   const admin = await prisma.user.findUniqueOrThrow({ where: { id: adminId } });
-  const subscription = await prisma.subscription.findUnique({ where: { adminId } });
+  const subscription = await prisma.subscription.findUnique({
+    where: { adminId },
+  });
   if (!subscription || !["active", "trial"].includes(subscription.status)) {
-    throw new Error("Admin subscription must be active or on trial to send consolidated reports.");
+    throw new Error(
+      "Admin subscription must be active or on trial to send consolidated reports.",
+    );
   }
 
   const rows = await getAdminVehicleReport(adminId, startDate, endDate);
@@ -301,8 +313,8 @@ export const generateAndSendAdminConsolidatedReport = async (
 };
 
 // ── Fleet report (admin) ──────────────────────────────────────────────────────
-export const getFleetReport = (startDate: Date, endDate: Date) =>
-  repo.getFleetReport(startDate, endDate);
+export const getFleetReport = (adminId: string, startDate: Date, endDate: Date) =>
+  repo.getFleetReport(adminId, startDate, endDate);
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 export const getTemplates = (userId: string) => repo.getTemplates(userId);
@@ -315,6 +327,7 @@ export const createTemplate = (
 ) => repo.createTemplate(userId, name, template, engine);
 
 export const updateTemplate = (
+  adminId: string,
   id: string,
   data: {
     name?: string;
@@ -322,6 +335,6 @@ export const updateTemplate = (
     engine?: string;
     isDefault?: boolean;
   },
-) => repo.updateTemplate(id, data);
+) => repo.updateTemplate(adminId, id, data);
 
-export const deleteTemplate = (id: string) => repo.deleteTemplate(id);
+export const deleteTemplate = (adminId: string, id: string) => repo.deleteTemplate(adminId, id);

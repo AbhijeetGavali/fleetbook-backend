@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { AppError } from "../../shared/middleware/errorHandler";
 import { RegisterInput, LoginInput } from "./auth.schema";
 import * as authRepo from "./auth.repo";
+import * as vehicleService from "../vehicles/vehicles.service";
+import * as subscriptionService from "../subscription/subscription.service";
 
 const signToken = (userId: string, role: string) =>
   jwt.sign({ userId, role }, process.env.JWT_SECRET!, {
@@ -14,9 +16,20 @@ export const register = async (input: RegisterInput) => {
   if (existing) throw new AppError("Email already registered", 409);
 
   const passwordHash = await bcrypt.hash(input.password, 12);
-  const user = await authRepo.createUser({ ...input, passwordHash });
+  const vehicle = await vehicleService.create(input.vehicle, "");
+  const user = await authRepo.createUser({
+    ...input,
+    passwordHash,
+    assignedVehicle: vehicle.id,
+  });
+  await vehicleService.updateAdmin(vehicle.id, user.id);
+  await authRepo.updateUserAdminIdToSelf(user.id);
+  const subscription = await subscriptionService.createSubscription(
+    user.id,
+    input.plan,
+  );
   const token = signToken(user.id, user.role);
-  return { user, token };
+  return { user, token, subscription };
 };
 
 export const login = async (input: LoginInput) => {

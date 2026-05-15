@@ -18,12 +18,12 @@ export const startMonthlyReportCron = () => {
 
     const users = await prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true , assignedToAdmin: true },
     });
 
     for (const user of users) {
       try {
-        await generateAndSendReport(user.id, startDate, endDate);
+        await generateAndSendReport(user.id, startDate, endDate, user.assignedToAdmin);
         logger.info(`Monthly report sent to user ${user.id} (${user.name})`);
       } catch (err) {
         logger.error(`Failed to send report to user ${user.id}: ${err}`);

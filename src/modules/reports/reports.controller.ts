@@ -17,13 +17,14 @@ const templateSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
-export const getFleetStats = asyncHandler(async (_req, res: Response) => {
-  sendSuccess(res, await service.getFleetStats());
+export const getFleetStats = asyncHandler(async (req: AuthRequest, res: Response) => {
+  sendSuccess(res, await service.getFleetStats(req.user!.userId));
 });
 
 export const getFleetReport = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { startDate, endDate } = reportQuerySchema.parse(req.query);
   sendSuccess(res, await service.getFleetReport(
+    req.user!.userId,
     new Date(startDate),
     new Date(endDate + "T23:59:59")
   ));
@@ -36,7 +37,8 @@ export const generateReport = asyncHandler(async (req: AuthRequest, res: Respons
   const result = await service.generateAndSendReport(
     userId,
     new Date(startDate),
-    new Date(endDate + "T23:59:59")
+    new Date(endDate + "T23:59:59"),
+    req.user!.userId
   );
 
   // Return PDF directly if requested
@@ -80,10 +82,10 @@ export const createTemplate = asyncHandler(async (req: AuthRequest, res: Respons
 });
 
 export const updateTemplate = asyncHandler(async (req: AuthRequest, res: Response) => {
-  sendSuccess(res, await service.updateTemplate(req.params.id, templateSchema.partial().parse(req.body)));
+  sendSuccess(res, await service.updateTemplate(req.user!.userId, req.params.id, templateSchema.partial().parse(req.body)));
 });
 
 export const deleteTemplate = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await service.deleteTemplate(req.params.id);
+  await service.deleteTemplate(req.user!.userId, req.params.id);
   sendSuccess(res, { message: "Template deleted" });
 });
