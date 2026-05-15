@@ -31,6 +31,7 @@ const TRIAL_DAYS = 30;
 export const getSubscription = async (userId: string) => {
   const driver = await prisma.user.findUnique({ where: { id: userId } });
   if (!driver) throw new AppError("User not found", 404);
+  if (!driver.assignedToAdmin) throw new AppError("Admin not found", 404);
 
   const subscription = await repo.findByAdminId(driver?.assignedToAdmin);
 

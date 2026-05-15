@@ -35,6 +35,7 @@ export const register = async (input: RegisterInput) => {
 export const login = async (input: LoginInput) => {
   const user = await authRepo.findUserByEmail(input.email);
   if (!user) throw new AppError("Invalid credentials", 401);
+  if (!user.assignedToAdmin) throw new AppError("Credentials Invalid", 401);
 
   const valid = await bcrypt.compare(input.password, user.passwordHash);
   if (!valid) throw new AppError("Invalid credentials", 401);

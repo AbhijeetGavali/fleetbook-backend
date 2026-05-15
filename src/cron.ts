@@ -23,6 +23,7 @@ export const startMonthlyReportCron = () => {
 
     for (const user of users) {
       try {
+        if(!user.assignedToAdmin) continue;
         await generateAndSendReport(user.id, startDate, endDate, user.assignedToAdmin);
         logger.info(`Monthly report sent to user ${user.id} (${user.name})`);
       } catch (err) {
