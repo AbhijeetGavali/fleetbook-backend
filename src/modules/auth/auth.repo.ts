@@ -15,7 +15,6 @@ export const createUser = (
       role: "ADMIN",
       passwordHash: data.passwordHash,
       assignedVehicle: data.assignedVehicle,
-      assignedToAdmin: "",
     },
     select: {
       id: true,
