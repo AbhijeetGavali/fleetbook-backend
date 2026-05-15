@@ -96,7 +96,7 @@ export const createSubscription = async (
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new AppError("User not found", 404);
-  if (user.role !== "ADMIN" && user.assignedToAdmin !== user.id) {
+  if (user.role === "DRIVER") {
     throw new AppError(
       "Drivers cannot create subscriptions. Contact your admin.",
       403,
