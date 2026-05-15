@@ -10,7 +10,7 @@ export const getById = async (id: string, adminId: string) => {
   return v;
 };
 
-export const create = (data: VehicleInput, adminId: string) => repo.create(data, adminId);
+export const create = (data: VehicleInput, adminId?: string) => repo.create(data, adminId);
 
 export const update = async (id: string, data: UpdateVehicleInput, adminId: string) => {
   await getById(id, adminId);

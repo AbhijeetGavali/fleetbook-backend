@@ -10,8 +10,10 @@ export const findAll = (adminId: string) =>
 export const findById = (id: string, adminId: string) =>
   prisma.vehicle.findUnique({ where: { id, assignedToAdmin: adminId } });
 
-export const create = (data: VehicleInput, adminId: string) =>
-  prisma.vehicle.create({ data: { ...data, assignedToAdmin: adminId } });
+export const create = (data: VehicleInput, adminId?: string) =>
+  prisma.vehicle.create({
+    data: adminId ? { ...data, assignedToAdmin: adminId } : { ...data },
+  });
 
 export const update = (id: string, data: UpdateVehicleInput, adminId: string) =>
   prisma.vehicle.update({ where: { id, assignedToAdmin: adminId }, data });

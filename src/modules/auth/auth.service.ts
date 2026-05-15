@@ -16,7 +16,7 @@ export const register = async (input: RegisterInput) => {
   if (existing) throw new AppError("Email already registered", 409);
 
   const passwordHash = await bcrypt.hash(input.password, 12);
-  const vehicle = await vehicleService.create(input.vehicle, "");
+  const vehicle = await vehicleService.create(input.vehicle);
   const user = await authRepo.createUser({
     ...input,
     passwordHash,
