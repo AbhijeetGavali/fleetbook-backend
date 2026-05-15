@@ -18,8 +18,8 @@ CREATE TABLE "users" (
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "assigned_vehicle" TEXT NOT NULL,
-    "assigned_to_admin" TEXT NOT NULL,
+    "assigned_vehicle" TEXT,
+    "assigned_to_admin" TEXT,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -32,7 +32,7 @@ CREATE TABLE "vehicles" (
     "fuel_type" TEXT NOT NULL,
     "last_km" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "assigned_to_admin" TEXT NOT NULL,
+    "assigned_to_admin" TEXT,
 
     CONSTRAINT "vehicles_pkey" PRIMARY KEY ("id")
 );
@@ -226,13 +226,13 @@ CREATE INDEX "sync_queue_user_id_status_idx" ON "sync_queue"("user_id", "status"
 CREATE UNIQUE INDEX "sync_queue_batch_id_record_id_key" ON "sync_queue"("batch_id", "record_id");
 
 -- AddForeignKey
-ALTER TABLE "users" ADD CONSTRAINT "users_assigned_vehicle_fkey" FOREIGN KEY ("assigned_vehicle") REFERENCES "vehicles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "users" ADD CONSTRAINT "users_assigned_vehicle_fkey" FOREIGN KEY ("assigned_vehicle") REFERENCES "vehicles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_assigned_to_admin_fkey" FOREIGN KEY ("assigned_to_admin") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vehicles" ADD CONSTRAINT "vehicles_assigned_to_admin_fkey" FOREIGN KEY ("assigned_to_admin") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "vehicles" ADD CONSTRAINT "vehicles_assigned_to_admin_fkey" FOREIGN KEY ("assigned_to_admin") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "logs" ADD CONSTRAINT "logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
