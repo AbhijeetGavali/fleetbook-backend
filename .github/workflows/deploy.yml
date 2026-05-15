@@ -56,6 +56,12 @@ jobs:
             export WA_TOKEN="${{ secrets.WA_TOKEN }}"
             export WA_PHONE_NUMBER_ID="${{ secrets.WA_PHONE_NUMBER_ID }}"
             export WA_WEBHOOK_VERIFY_TOKEN="${{ secrets.WA_WEBHOOK_VERIFY_TOKEN }}"
+            
+            export RAZORPAY_KEY_ID="${{ secrets.RAZORPAY_KEY_ID }}"
+            export RAZORPAY_KEY_SECRET="${{ secrets.RAZORPAY_KEY_SECRET }}"
+            export RAZORPAY_WEBHOOK_SECRET="${{ secrets.RAZORPAY_WEBHOOK_SECRET }}"
+            export RAZORPAY_PLAN_MONTHLY_ID="${{ secrets.RAZORPAY_PLAN_MONTHLY_ID }}"
+            export RAZORPAY_PLAN_ANNUAL_ID="${{ secrets.RAZORPAY_PLAN_ANNUAL_ID }}"
 
             echo "Logging into Docker registry..."
             docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GHCR_PAT }}
