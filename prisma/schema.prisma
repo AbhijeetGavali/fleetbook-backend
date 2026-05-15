@@ -18,11 +18,11 @@ model User {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  assignedVehicle  String    @unique @map("assigned_vehicle")
-  assignedToAdmin  String    @map("assigned_to_admin")
+  assignedVehicle  String?    @unique @map("assigned_vehicle")
+  assignedToAdmin  String?    @map("assigned_to_admin")
   
-  vehicle          Vehicle   @relation("DriverVehicle", fields: [assignedVehicle], references: [id])
-  admin            User      @relation("AdminDrivers", fields: [assignedToAdmin], references: [id], onDelete: SetNull)
+  vehicle          Vehicle?   @relation("DriverVehicle", fields: [assignedVehicle], references: [id], onDelete: SetNull)
+  admin            User?      @relation("AdminDrivers", fields: [assignedToAdmin], references: [id], onDelete: SetNull)
   
   managedVehicles  Vehicle[] @relation("AdminVehicles")
   managedDrivers   User[]    @relation("AdminDrivers")
@@ -52,8 +52,8 @@ model Vehicle {
   logs      Log[]
   driver    User?    @relation("DriverVehicle")
 
-  assignedToAdmin  String    @map("assigned_to_admin")
-  admin            User      @relation("AdminVehicles", fields: [assignedToAdmin], references: [id])
+  assignedToAdmin  String?    @map("assigned_to_admin")
+  admin            User?      @relation("AdminVehicles", fields: [assignedToAdmin], references: [id])
   
   @@map("vehicles")
 }

@@ -53,7 +53,9 @@ const authLimiter = rateLimit({
   },
 });
 
+app.set("trust proxy", 1);
 app.use(limiter);
+
 // ── Webhook raw body for Razorpay verification ───────────────────────────────
 app.post(
   "/api/webhook/razorpay",
