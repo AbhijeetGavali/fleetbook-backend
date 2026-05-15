@@ -114,7 +114,8 @@ export const createSubscription = async (
     plan,
   );
 
-  const trialEndsAt = razorpaySubscription.start_at;
+  const trialEndsAt = new Date(razorpaySubscription.start_at * 1000);
+
   const nextBillingAt = razorpaySubscription.current_end
     ? new Date(razorpaySubscription.current_end * 1000)
     : new Date(
