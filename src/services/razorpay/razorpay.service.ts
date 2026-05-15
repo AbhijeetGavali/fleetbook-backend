@@ -75,7 +75,7 @@ export const createRazorpaySubscription = async (
     plan_id: planId,
     customer_notify: 1,
     quantity: driverCount,
-    total_count: 9999,
+    total_count: 1199,
     start_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // Start after 30 days (trial period)
     notes: {
       app: "FleetBook",
