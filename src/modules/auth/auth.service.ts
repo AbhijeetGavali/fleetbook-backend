@@ -40,6 +40,8 @@ export const login = async (input: LoginInput) => {
   const valid = await bcrypt.compare(input.password, user.passwordHash);
   if (!valid) throw new AppError("Invalid credentials", 401);
 
+  if (!user.isActive) throw new AppError("Inactive - contact admin!", 401);
+
   subscriptionService.isSubscriptionActive(user.assignedToAdmin);
 
   const token = signToken(user.id, user.role);

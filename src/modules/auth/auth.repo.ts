@@ -2,7 +2,20 @@ import { prisma } from "../../shared/utils/prisma";
 import { RegisterInput } from "./auth.schema";
 
 export const findUserByEmail = (email: string) =>
-  prisma.user.findUnique({ where: { email } });
+  prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      vehicle: true,
+      isActive: true,
+      passwordHash: true,
+      assignedToAdmin: true,
+    },
+  });
 
 export const createUser = (
   data: RegisterInput & { passwordHash: string; assignedVehicle: string },
