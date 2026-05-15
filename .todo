@@ -3,3 +3,23 @@
 [] update reports routes entirely
 [] check cron jobs
 [] check update subscription works or not!?
+
+
+
+[] create a gmail service to send multiple requests 
+    [] implement round robin and 30 emails to send emails from the service
+    [] implement DB to add custome user emails creds
+    [] implement 1 sec delay to wait for sending emails
+    [] impleemnt queue and worker to send this emails
+
+[] create a wp service to send multiple wp msg or template msg
+    [] impleemnt templates to add templates to the fb for verification directly
+    [] impelemnt service to send msg to the user
+    [] implement service to get creds from customers
+
+[] create a razorpay service to manage the subscription
+    [] implemnt the plans
+    [] implement the subscription
+    [] implement the adons
+    [] implement the daily product based subscription
+    [] impleemnt the trial subscription
