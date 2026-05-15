@@ -73,8 +73,8 @@ cp .env.example .env
 Use any cloud PostgreSQL: [Supabase](https://supabase.com), [Neon](https://neon.tech), [Railway](https://railway.app)
 
 ```bash
-npm run prisma:migrate   # run migrations
-npm run prisma:generate  # generate Prisma client
+npm run db:migrate   # run migrations
+npm run db:generate  # generate Prisma client
 ```
 
 ### 6. Run
