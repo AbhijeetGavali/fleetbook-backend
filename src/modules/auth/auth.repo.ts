@@ -23,7 +23,7 @@ export const createUser = (
       email: true,
       phone: true,
       role: true,
-      assignedVehicle: true,
+      vehicle: true,
     },
   });
 

@@ -4,6 +4,7 @@ import {
   createOrFindCustomer,
   createRazorpaySubscription,
   increaseRazorpaySubscriptionQuantity,
+  RAZORPAY_KEY_ID,
 } from "../../services/razorpay/razorpay.service";
 import { prisma } from "../../shared/utils/prisma";
 import * as repo from "./subscription.repo";
@@ -149,6 +150,7 @@ export const createSubscription = async (
   return {
     subscriptionId: razorpaySubscription.id,
     checkoutId: razorpaySubscription.id,
+    api_key: RAZORPAY_KEY_ID,
     customerId,
     plan,
     totalAmount:

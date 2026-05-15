@@ -16,7 +16,7 @@ router.get("/", (req: Request, res: Response) => {
   return res.sendStatus(403);
 });
 
-// Incoming messages (POST) — extend here to handle replies
+// Incoming messages (POST) - extend here to handle replies
 router.post("/", (req: Request, res: Response) => {
   logger.info("WhatsApp webhook event", { body: req.body });
   res.sendStatus(200);

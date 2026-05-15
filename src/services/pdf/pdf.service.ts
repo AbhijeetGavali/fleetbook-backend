@@ -9,7 +9,12 @@ export interface ReportData {
   totalFuel: number;
   totalProfit: number;
   incomeRows: { date: string; category: string; amount: number }[];
-  expenseRows: { date: string; type: string; subType: string; amount: number }[];
+  expenseRows: {
+    date: string;
+    type: string;
+    subType: string;
+    amount: number;
+  }[];
   fuelRows: { date: string; costInr: number; kmAtFill?: number }[];
 }
 
@@ -27,7 +32,10 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
 
     // ── Header ────────────────────────────────────────────────────────────────
     doc.rect(0, 0, doc.page.width, 70).fill("#1a73e8");
-    doc.fillColor("white").fontSize(20).text("FleetBook — Monthly Profit Report", 40, 20);
+    doc
+      .fillColor("white")
+      .fontSize(20)
+      .text("FleetBook - Monthly Profit Report", 40, 20);
     doc.fontSize(11).text(`${data.fromDate}  →  ${data.toDate}`, 40, 46);
     doc.fillColor("#333").moveDown(3);
 
@@ -40,16 +48,30 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
     const boxW = 120;
     const gap = 14;
     const boxes = [
-      { label: "Total Revenue", value: INR(data.totalRevenue), color: "#e8f5e9" },
-      { label: "Total Expense", value: INR(data.totalExpense), color: "#fce4ec" },
+      {
+        label: "Total Revenue",
+        value: INR(data.totalRevenue),
+        color: "#e8f5e9",
+      },
+      {
+        label: "Total Expense",
+        value: INR(data.totalExpense),
+        color: "#fce4ec",
+      },
       { label: "Fuel Cost", value: INR(data.totalFuel), color: "#fff3e0" },
       { label: "Net Profit", value: INR(data.totalProfit), color: "#e3f2fd" },
     ];
     boxes.forEach((b, i) => {
       const x = 40 + i * (boxW + gap);
       doc.rect(x, boxY, boxW, 56).fill(b.color);
-      doc.fillColor("#555").fontSize(9).text(b.label, x + 8, boxY + 8, { width: boxW - 16 });
-      doc.fillColor("#1a73e8").fontSize(13).font("Helvetica-Bold")
+      doc
+        .fillColor("#555")
+        .fontSize(9)
+        .text(b.label, x + 8, boxY + 8, { width: boxW - 16 });
+      doc
+        .fillColor("#1a73e8")
+        .fontSize(13)
+        .font("Helvetica-Bold")
         .text(b.value, x + 8, boxY + 24, { width: boxW - 16 });
       doc.font("Helvetica");
     });
@@ -61,7 +83,7 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
       title: string,
       headers: string[],
       widths: number[],
-      rows: string[][]
+      rows: string[][],
     ) => {
       doc.moveDown(1);
       doc.fontSize(12).fillColor("#1a73e8").font("Helvetica-Bold").text(title);
@@ -71,7 +93,14 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
       let y = doc.y + 4;
 
       // header row
-      doc.rect(startX, y, widths.reduce((a, b) => a + b, 0), 18).fill("#e8eaf6");
+      doc
+        .rect(
+          startX,
+          y,
+          widths.reduce((a, b) => a + b, 0),
+          18,
+        )
+        .fill("#e8eaf6");
       doc.fillColor("#333").fontSize(9).font("Helvetica-Bold");
       let x = startX;
       headers.forEach((h, i) => {
@@ -83,12 +112,26 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
 
       // data rows
       rows.forEach((row, ri) => {
-        if (y > doc.page.height - 60) { doc.addPage(); y = 40; }
-        if (ri % 2 === 0) doc.rect(startX, y, widths.reduce((a, b) => a + b, 0), 16).fill("#fafafa");
+        if (y > doc.page.height - 60) {
+          doc.addPage();
+          y = 40;
+        }
+        if (ri % 2 === 0)
+          doc
+            .rect(
+              startX,
+              y,
+              widths.reduce((a, b) => a + b, 0),
+              16,
+            )
+            .fill("#fafafa");
         doc.fillColor("#333").fontSize(8);
         x = startX;
         row.forEach((cell, i) => {
-          doc.text(cell, x + 4, y + 3, { width: widths[i] - 8, lineBreak: false });
+          doc.text(cell, x + 4, y + 3, {
+            width: widths[i] - 8,
+            lineBreak: false,
+          });
           x += widths[i];
         });
         y += 16;
@@ -101,7 +144,7 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
       "Income",
       ["Date", "Category", "Amount"],
       [120, 260, 115],
-      data.incomeRows.map((r) => [r.date, r.category, INR(r.amount)])
+      data.incomeRows.map((r) => [r.date, r.category, INR(r.amount)]),
     );
 
     // ── Expense table ─────────────────────────────────────────────────────────
@@ -109,7 +152,7 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
       "Expenses",
       ["Date", "Type", "Sub-Type", "Amount"],
       [100, 130, 130, 115],
-      data.expenseRows.map((r) => [r.date, r.type, r.subType, INR(r.amount)])
+      data.expenseRows.map((r) => [r.date, r.type, r.subType, INR(r.amount)]),
     );
 
     // ── Fuel table ────────────────────────────────────────────────────────────
@@ -117,13 +160,21 @@ export const generateReportPdf = (data: ReportData): Promise<Buffer> =>
       "Fuel Records",
       ["Date", "KM at Fill", "Cost"],
       [150, 195, 130],
-      data.fuelRows.map((r) => [r.date, String(r.kmAtFill ?? "-"), INR(r.costInr)])
+      data.fuelRows.map((r) => [
+        r.date,
+        String(r.kmAtFill ?? "-"),
+        INR(r.costInr),
+      ]),
     );
 
     // ── Footer ────────────────────────────────────────────────────────────────
     doc.moveDown(2);
-    doc.fontSize(9).fillColor("#999")
-      .text(`Generated by FleetBook on ${new Date().toLocaleString("en-IN")}`, { align: "center" });
+    doc
+      .fontSize(9)
+      .fillColor("#999")
+      .text(`Generated by FleetBook on ${new Date().toLocaleString("en-IN")}`, {
+        align: "center",
+      });
 
     doc.end();
   });

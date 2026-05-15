@@ -17,7 +17,7 @@ export interface ReportTemplateVars {
  * Renders a report template string using the specified engine.
  * Defaults to Handlebars.
  *
- * Example template (Handlebars / Mustache — same syntax for simple vars):
+ * Example template (Handlebars / Mustache - same syntax for simple vars):
  *   Hello {{user_name}},
  *   Your monthly profit report for the period {{from_date}} to {{to_date}} is ready.
  *   Total Revenue: ₹{{total_revenue}}
@@ -27,7 +27,7 @@ export interface ReportTemplateVars {
 export const renderTemplate = (
   template: string,
   vars: ReportTemplateVars,
-  engine: TemplateEngine = "handlebars"
+  engine: TemplateEngine = "handlebars",
 ): string => {
   if (engine === "mustache") {
     return Mustache.render(template, vars);
@@ -35,7 +35,7 @@ export const renderTemplate = (
   return Handlebars.compile(template)(vars);
 };
 
-/** Default WA template body — mirrors the approved Meta template */
+/** Default WA template body - mirrors the approved Meta template */
 export const DEFAULT_WA_TEMPLATE =
   `Hello {{user_name}},\n\n` +
   `Your monthly profit report for the period {{from_date}} to {{to_date}} is ready.\n\n` +

@@ -24,7 +24,11 @@ async function sendRaw(body: object): Promise<string | null> {
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      console.error("[WA] error - status:", res.status, JSON.stringify(errBody));
+      console.error(
+        "[WA] error - status:",
+        res.status,
+        JSON.stringify(errBody),
+      );
       return null;
     }
 
@@ -37,7 +41,10 @@ async function sendRaw(body: object): Promise<string | null> {
 }
 
 // ── Upload PDF to WA media, returns media_id ──────────────────────────────────
-async function uploadMedia(pdfBuffer: Buffer, filename: string): Promise<string | null> {
+async function uploadMedia(
+  pdfBuffer: Buffer,
+  filename: string,
+): Promise<string | null> {
   const phoneNumberId = process.env.WA_PHONE_NUMBER_ID!;
   const token = process.env.WA_TOKEN!;
 
@@ -53,7 +60,7 @@ async function uploadMedia(pdfBuffer: Buffer, filename: string): Promise<string 
     form.append(
       "file",
       new Blob([pdfBuffer], { type: "application/pdf" }),
-      filename
+      filename,
     );
 
     const res = await fetch(`${BASE_URL}/${phoneNumberId}/media`, {
@@ -64,7 +71,11 @@ async function uploadMedia(pdfBuffer: Buffer, filename: string): Promise<string 
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      console.error("[WA] media upload error:", res.status, JSON.stringify(errBody));
+      console.error(
+        "[WA] media upload error:",
+        res.status,
+        JSON.stringify(errBody),
+      );
       return null;
     }
 
@@ -101,9 +112,15 @@ export interface WhatsAppReportParams {
  *   Total Profit: ₹{{5}}
  *   Please find the report attached.
  */
-export const sendWhatsAppReport = async (params: WhatsAppReportParams): Promise<void> => {
-  const revenue = params.totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 });
-  const profit = params.totalProfit.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+export const sendWhatsAppReport = async (
+  params: WhatsAppReportParams,
+): Promise<void> => {
+  const revenue = params.totalRevenue.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+  });
+  const profit = params.totalProfit.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+  });
 
   // 1. Upload PDF to get media_id
   const mediaId = await uploadMedia(params.pdfBuffer, params.pdfFilename);
@@ -121,7 +138,7 @@ export const sendWhatsAppReport = async (params: WhatsAppReportParams): Promise<
       name: "monthly_profit_report_fleetbook",
       language: { code: "en" },
       components: [
-        // Document header — the PDF
+        // Document header - the PDF
         {
           type: "header",
           parameters: [
@@ -134,7 +151,7 @@ export const sendWhatsAppReport = async (params: WhatsAppReportParams): Promise<
             },
           ],
         },
-        // Body — positional parameters matching {{1}}…{{5}}
+        // Body - positional parameters matching {{1}}…{{5}}
         {
           type: "body",
           parameters: [

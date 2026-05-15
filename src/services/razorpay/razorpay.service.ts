@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+export const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_PLAN_MONTHLY_ID = process.env.RAZORPAY_PLAN_MONTHLY_ID;
 const RAZORPAY_PLAN_ANNUAL_ID = process.env.RAZORPAY_PLAN_ANNUAL_ID;

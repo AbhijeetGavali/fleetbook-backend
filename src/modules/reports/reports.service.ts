@@ -24,7 +24,10 @@ export const generateAndSendReport = async (
   requesterId: string,
 ) => {
   const user = await prisma.user.findUniqueOrThrow({
-    where: requesterId !== userId ? { id: userId, assignedToAdmin: requesterId } : { id: userId },
+    where:
+      requesterId !== userId
+        ? { id: userId, assignedToAdmin: requesterId }
+        : { id: userId },
   });
   const { incomes, expenses, fuel } = await repo.getReportData(
     userId,
@@ -98,7 +101,7 @@ export const generateAndSendReport = async (
   if (user.email) {
     await sendEmail({
       to: user.email,
-      subject: `FleetBook Monthly Report — ${fromDate} to ${toDate}`,
+      subject: `FleetBook Monthly Report - ${fromDate} to ${toDate}`,
       html: buildReportEmailHtml({
         userName: user.name,
         fromDate,
@@ -205,7 +208,7 @@ const sendReportToUser = async (
   if (user.email) {
     await sendEmail({
       to: user.email,
-      subject: `FleetBook Monthly Report — ${fromDate} to ${toDate}`,
+      subject: `FleetBook Monthly Report - ${fromDate} to ${toDate}`,
       html: buildReportEmailHtml({
         userName: user.name,
         fromDate,
@@ -313,8 +316,11 @@ export const generateAndSendAdminConsolidatedReport = async (
 };
 
 // ── Fleet report (admin) ──────────────────────────────────────────────────────
-export const getFleetReport = (adminId: string, startDate: Date, endDate: Date) =>
-  repo.getFleetReport(adminId, startDate, endDate);
+export const getFleetReport = (
+  adminId: string,
+  startDate: Date,
+  endDate: Date,
+) => repo.getFleetReport(adminId, startDate, endDate);
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 export const getTemplates = (userId: string) => repo.getTemplates(userId);
@@ -337,4 +343,5 @@ export const updateTemplate = (
   },
 ) => repo.updateTemplate(adminId, id, data);
 
-export const deleteTemplate = (adminId: string, id: string) => repo.deleteTemplate(adminId, id);
+export const deleteTemplate = (adminId: string, id: string) =>
+  repo.deleteTemplate(adminId, id);
