@@ -68,3 +68,17 @@ export const getStatsByDate = asyncHandler(async (req: AuthRequest, res: Respons
   const date = req.query.date as string ?? new Date().toISOString().split("T")[0];
   sendSuccess(res, await service.getStatsByDate(userId(req), date));
 });
+
+// ── Updates ───────────────────────────────────────────────────────────────────
+export const updateLog = asyncHandler(async (req: AuthRequest, res: Response) => {
+  sendSuccess(res, await service.updateLog(req.params.id, req.body));
+});
+export const updateFuel = asyncHandler(async (req: AuthRequest, res: Response) => {
+  sendSuccess(res, await service.updateFuel(req.params.id, req.body));
+});
+export const updateIncome = asyncHandler(async (req: AuthRequest, res: Response) => {
+  sendSuccess(res, await service.updateIncome(req.params.id, req.body));
+});
+export const updateExpense = asyncHandler(async (req: AuthRequest, res: Response) => {
+  sendSuccess(res, await service.updateExpense(req.params.id, req.body));
+});

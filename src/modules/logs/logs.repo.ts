@@ -65,6 +65,19 @@ export const getExpenseByUser = (userId: string, limit = 50, offset = 0) =>
 
 export const deleteExpense = (id: string) => prisma.expense.delete({ where: { id } });
 
+// ── Updates ───────────────────────────────────────────────────────────────────
+export const updateLog = (id: string, data: { value?: number }) =>
+  prisma.log.update({ where: { id }, data });
+
+export const updateFuel = (id: string, data: { kmAtFill?: number; gasKg?: number; costInr?: number }) =>
+  prisma.fuelRecord.update({ where: { id }, data });
+
+export const updateIncome = (id: string, data: { amount?: number; categoryId?: string }) =>
+  prisma.income.update({ where: { id }, data, include: { category: true } });
+
+export const updateExpense = (id: string, data: { amount?: number; description?: string; typeId?: string; subTypeId?: string }) =>
+  prisma.expense.update({ where: { id }, data, include: { type: true, subType: true } });
+
 // ── Stats for a date ──────────────────────────────────────────────────────────
 export const getStatsByDate = async (userId: string, date: string) => {
   const start = new Date(date);
