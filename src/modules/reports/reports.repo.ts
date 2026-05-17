@@ -1,6 +1,10 @@
 import { prisma } from "../../shared/utils/prisma";
 
-export const getReportData = async (userId: string, startDate: Date, endDate: Date) => {
+export const getReportData = async (
+  userId: string,
+  startDate: Date,
+  endDate: Date,
+) => {
   const [incomes, expenses, fuel] = await Promise.all([
     prisma.income.findMany({
       where: { userId, date: { gte: startDate, lte: endDate } },
@@ -28,15 +32,28 @@ export const getFleetStats = async (adminId: string) => {
   });
   const driverIds = adminDrivers.map((d) => d.id);
 
-  const [driverCount, vehicleCount, incomeSum, expenseSum, fuelSum] = await Promise.all([
-    prisma.user.count({ where: { role: "DRIVER", isActive: true, assignedToAdmin: adminId } }),
-    prisma.vehicle.count({ where: { assignedToAdmin: adminId } }),
-    prisma.income.aggregate({ where: { userId: { in: driverIds } }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { userId: { in: driverIds } }, _sum: { amount: true } }),
-    prisma.fuelRecord.aggregate({ where: { userId: { in: driverIds } }, _sum: { costInr: true } }),
-  ]);
+  const [driverCount, vehicleCount, incomeSum, expenseSum, fuelSum] =
+    await Promise.all([
+      prisma.user.count({
+        where: { role: "DRIVER", isActive: true, assignedToAdmin: adminId },
+      }),
+      prisma.vehicle.count({ where: { assignedToAdmin: adminId } }),
+      prisma.income.aggregate({
+        where: { userId: { in: driverIds } },
+        _sum: { amount: true },
+      }),
+      prisma.expense.aggregate({
+        where: { userId: { in: driverIds } },
+        _sum: { amount: true },
+      }),
+      prisma.fuelRecord.aggregate({
+        where: { userId: { in: driverIds } },
+        _sum: { costInr: true },
+      }),
+    ]);
   const totalIncome = incomeSum._sum.amount ?? 0;
-  const totalExpense = (expenseSum._sum.amount ?? 0) + (fuelSum._sum.costInr ?? 0);
+  const totalExpense =
+    (expenseSum._sum.amount ?? 0) + (fuelSum._sum.costInr ?? 0);
   return {
     totalDrivers: driverCount,
     totalVehicles: vehicleCount,
@@ -47,7 +64,11 @@ export const getFleetStats = async (adminId: string) => {
 };
 
 /** Fleet report: all drivers, grouped by driver, for a date range */
-export const getFleetReport = async (adminId: string, startDate: Date, endDate: Date) => {
+export const getFleetReport = async (
+  adminId: string,
+  startDate: Date,
+  endDate: Date,
+) => {
   const drivers = await prisma.user.findMany({
     where: { role: "DRIVER", isActive: true, assignedToAdmin: adminId },
     select: { id: true, name: true, assignedVehicle: true },
@@ -71,7 +92,8 @@ export const getFleetReport = async (adminId: string, startDate: Date, endDate: 
         }),
       ]);
       const totalIncome = incomeAgg._sum.amount ?? 0;
-      const totalExpense = (expenseAgg._sum.amount ?? 0) + (fuelAgg._sum.costInr ?? 0);
+      const totalExpense =
+        (expenseAgg._sum.amount ?? 0) + (fuelAgg._sum.costInr ?? 0);
       return {
         driverId: driver.id,
         driverName: driver.name,
@@ -80,7 +102,7 @@ export const getFleetReport = async (adminId: string, startDate: Date, endDate: 
         totalExpense,
         netEarnings: totalIncome - totalExpense,
       };
-    })
+    }),
   );
 
   return results;
@@ -128,7 +150,8 @@ export const getAdminVehicleReport = async (
       return {
         driverId: driver.id,
         driverName: driver.name,
-        vehicleRegNo: driver.vehicle?.regNo ?? driver.assignedVehicle ?? "Unassigned",
+        vehicleRegNo:
+          driver.vehicle?.regNo ?? driver.assignedVehicle ?? "Unassigned",
         totalIncome: incomeAgg._sum.amount ?? 0,
         totalExpense: expenseAgg._sum.amount ?? 0,
         totalFuel: fuelAgg._sum.costInr ?? 0,
@@ -143,13 +166,22 @@ export const getAdminVehicleReport = async (
 };
 
 // ── Monthly report: per-day AND per-driver breakdown ─────────────────────────
-export const getMonthlyReport = async (adminId: string, year: number, month: number) => {
+export const getMonthlyReport = async (
+  adminId: string,
+  year: number,
+  month: number,
+) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
   const drivers = await prisma.user.findMany({
-    where: { role: "DRIVER", assignedToAdmin: adminId },
-    select: { id: true, name: true, assignedVehicle: true, vehicle: { select: { regNo: true } } },
+    where: { assignedToAdmin: adminId },
+    select: {
+      id: true,
+      name: true,
+      assignedVehicle: true,
+      vehicle: { select: { regNo: true } },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -157,15 +189,24 @@ export const getMonthlyReport = async (adminId: string, year: number, month: num
 
   const [incomes, expenses, fuel] = await Promise.all([
     prisma.income.findMany({
-      where: { userId: { in: driverIds }, date: { gte: startDate, lte: endDate } },
+      where: {
+        userId: { in: driverIds },
+        date: { gte: startDate, lte: endDate },
+      },
       select: { userId: true, date: true, amount: true },
     }),
     prisma.expense.findMany({
-      where: { userId: { in: driverIds }, date: { gte: startDate, lte: endDate } },
+      where: {
+        userId: { in: driverIds },
+        date: { gte: startDate, lte: endDate },
+      },
       select: { userId: true, date: true, amount: true },
     }),
     prisma.fuelRecord.findMany({
-      where: { userId: { in: driverIds }, date: { gte: startDate, lte: endDate } },
+      where: {
+        userId: { in: driverIds },
+        date: { gte: startDate, lte: endDate },
+      },
       select: { userId: true, date: true, costInr: true },
     }),
   ]);
@@ -189,7 +230,10 @@ export const getMonthlyReport = async (adminId: string, year: number, month: num
   }
 
   // Per-driver aggregation
-  const byDriver: Record<string, { name: string; vehicleRegNo: string; income: number; expense: number }> = {};
+  const byDriver: Record<
+    string,
+    { name: string; vehicleRegNo: string; income: number; expense: number }
+  > = {};
   for (const driver of drivers) {
     byDriver[driver.id] = {
       name: driver.name,
@@ -221,7 +265,12 @@ export const getMonthlyReport = async (adminId: string, year: number, month: num
     netEarnings: totalIncome - totalExpense,
     totalDrivers: drivers.length,
     byDay: Object.entries(byDay)
-      .map(([date, v]) => ({ date, income: v.income, expense: v.expense, net: v.income - v.expense }))
+      .map(([date, v]) => ({
+        date,
+        income: v.income,
+        expense: v.expense,
+        net: v.income - v.expense,
+      }))
       .sort((a, b) => a.date.localeCompare(b.date)),
     byDriver: Object.entries(byDriver)
       .map(([id, v]) => ({ driverId: id, ...v, net: v.income - v.expense }))
@@ -229,7 +278,10 @@ export const getMonthlyReport = async (adminId: string, year: number, month: num
   };
 };
 export const getTemplates = (userId: string) =>
-  prisma.reportTemplate.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+  prisma.reportTemplate.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
 
 export const getDefaultTemplate = (userId: string) =>
   prisma.reportTemplate.findFirst({ where: { userId, isDefault: true } });
@@ -238,16 +290,19 @@ export const createTemplate = (
   userId: string,
   name: string,
   template: string,
-  engine: string
+  engine: string,
 ) => prisma.reportTemplate.create({ data: { userId, name, template, engine } });
 
 export const updateTemplate = (
   adminId: string,
   id: string,
-  data: { name?: string; template?: string; engine?: string; isDefault?: boolean }
+  data: {
+    name?: string;
+    template?: string;
+    engine?: string;
+    isDefault?: boolean;
+  },
 ) => prisma.reportTemplate.update({ where: { id }, data });
 
 export const deleteTemplate = (adminId: string, id: string) =>
   prisma.reportTemplate.delete({ where: { id } });
-
-
