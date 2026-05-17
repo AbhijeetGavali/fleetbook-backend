@@ -13,6 +13,7 @@ import logsRoutes from "./modules/logs/logs.routes";
 import reportsRoutes from "./modules/reports/reports.routes";
 import syncRoutes from "./modules/sync/sync.routes";
 import subscriptionRoutes from "./modules/subscription/subscription.routes";
+import adminRoutes from "./modules/admin/admin.routes";
 import { webhook as razorpayWebhook } from "./modules/subscription/subscription.controller";
 import waWebhook from "./services/whatsapp/whatsapp.webhook";
 import { errorHandler } from "./shared/middleware/errorHandler";
@@ -83,6 +84,7 @@ app.use("/api/logs", logsRoutes);
 
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use("/api/webhook/razorpay", razorpayWebhook);
 app.use("/api/webhook/whatsapp", waWebhook);

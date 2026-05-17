@@ -7,6 +7,8 @@ router.use(authenticate);
 
 // Fleet-wide stats (admin only)
 router.get("/stats", requireAdmin, ctrl.getFleetStats);
+// Monthly report: per-day + per-driver breakdown (admin only)
+router.get("/monthly", requireAdmin, ctrl.getMonthlyReport);
 // Fleet report grouped by driver (admin only)
 router.get("/fleet", requireAdmin, ctrl.getFleetReport);
 // Admin consolidated report by vehicle/driver (admin only)

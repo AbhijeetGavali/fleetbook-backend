@@ -322,6 +322,9 @@ export const getFleetReport = (
   endDate: Date,
 ) => repo.getFleetReport(adminId, startDate, endDate);
 
+export const getMonthlyReport = (adminId: string, year: number, month: number) =>
+  repo.getMonthlyReport(adminId, year, month);
+
 // ── Templates ─────────────────────────────────────────────────────────────────
 export const getTemplates = (userId: string) => repo.getTemplates(userId);
 

@@ -20,7 +20,7 @@ export const getLogs = asyncHandler(async (req: AuthRequest, res: Response) => {
   sendSuccess(res, await service.getLogs(userId(req), limit, offset));
 });
 export const deleteLog = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await service.deleteLog(req.params.id);
+  await service.deleteLog(req.params.id, userId(req));
   sendSuccess(res, { message: "Deleted" });
 });
 
@@ -33,7 +33,7 @@ export const getFuel = asyncHandler(async (req: AuthRequest, res: Response) => {
   sendSuccess(res, await service.getFuel(userId(req), limit, offset));
 });
 export const deleteFuel = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await service.deleteFuel(req.params.id);
+  await service.deleteFuel(req.params.id, userId(req));
   sendSuccess(res, { message: "Deleted" });
 });
 
@@ -46,7 +46,7 @@ export const getIncome = asyncHandler(async (req: AuthRequest, res: Response) =>
   sendSuccess(res, await service.getIncome(userId(req), limit, offset));
 });
 export const deleteIncome = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await service.deleteIncome(req.params.id);
+  await service.deleteIncome(req.params.id, userId(req));
   sendSuccess(res, { message: "Deleted" });
 });
 
@@ -59,7 +59,7 @@ export const getExpense = asyncHandler(async (req: AuthRequest, res: Response) =
   sendSuccess(res, await service.getExpense(userId(req), limit, offset));
 });
 export const deleteExpense = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await service.deleteExpense(req.params.id);
+  await service.deleteExpense(req.params.id, userId(req));
   sendSuccess(res, { message: "Deleted" });
 });
 

@@ -21,6 +21,12 @@ export const getFleetStats = asyncHandler(async (req: AuthRequest, res: Response
   sendSuccess(res, await service.getFleetStats(req.user!.userId));
 });
 
+export const getMonthlyReport = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const year = parseInt(req.query.year as string) || new Date().getFullYear();
+  const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+  sendSuccess(res, await service.getMonthlyReport(req.user!.userId, year, month));
+});
+
 export const getFleetReport = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { startDate, endDate } = reportQuerySchema.parse(req.query);
   sendSuccess(res, await service.getFleetReport(
