@@ -27,6 +27,14 @@ export interface SubscriptionStatus {
 }
 
 const TRIAL_DAYS = 30;
+const PLAN_PRICES = { monthly: 99, annual: 999 } as const;
+const CANCELLATION_INFO = "Cancel anytime by contacting contact@ideasprout.in. No charges apply during the free trial period.";
+
+const trialTerms = (plan?: "monthly" | "annual" | null) => ({
+  trialDays: TRIAL_DAYS,
+  postTrialPrice: plan ? `₹${PLAN_PRICES[plan]}/${plan === "monthly" ? "month" : "year"}` : "₹99/month or ₹999/year",
+  cancellationInfo: CANCELLATION_INFO,
+});
 
 export const getSubscription = async (userId: string) => {
   const driver = await prisma.user.findUnique({ where: { id: userId } });
@@ -43,7 +51,9 @@ export const getSubscription = async (userId: string) => {
       return {
         plan: null,
         status: "trial" as const,
+        trialEndsAt: trialEndFromSignup,
         nextBillingAt: trialEndFromSignup,
+        ...trialTerms(null),
       };
     }
     return { plan: null, status: "none" as const };
@@ -64,6 +74,7 @@ export const getSubscription = async (userId: string) => {
       nextBillingAt: effectiveSubscription.nextBillingAt,
       razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
       activatedAt: effectiveSubscription.activatedAt,
+      ...trialTerms(effectiveSubscription.plan as "monthly" | "annual"),
     };
   }
 
@@ -159,6 +170,7 @@ export const createSubscription = async (
       razorpaySubscription.quantity * (plan === "monthly" ? 99 : 999),
     nextBillingAt,
     trialEndsAt,
+    ...trialTerms(plan),
   };
 };
 
