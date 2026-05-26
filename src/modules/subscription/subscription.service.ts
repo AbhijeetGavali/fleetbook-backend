@@ -11,7 +11,7 @@ import * as repo from "./subscription.repo";
 
 export type SubscriptionState =
   | "none"
-  | "trial"
+  | "active"
   | "active"
   | "expired"
   | "cancelled";
@@ -42,7 +42,7 @@ export const getSubscription = async (userId: string) => {
     if (isAfter(trialEndFromSignup, new Date())) {
       return {
         plan: null,
-        status: "trial" as const,
+        status: "active" as const,
         nextBillingAt: trialEndFromSignup,
       };
     }
@@ -60,7 +60,7 @@ export const getSubscription = async (userId: string) => {
   ) {
     return {
       plan: effectiveSubscription.plan as "monthly" | "annual",
-      status: "trial" as const,
+      status: "active" as const,
       nextBillingAt: effectiveSubscription.nextBillingAt,
       razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
       activatedAt: effectiveSubscription.activatedAt,
@@ -132,7 +132,7 @@ export const createSubscription = async (
         plan,
         razorpaySubscriptionId: razorpaySubscription.id,
         razorpayCustomerId: customerId,
-        status: "trial",
+        status: "active",
         nextBillingAt,
         activatedAt: new Date(),
       },
@@ -143,7 +143,7 @@ export const createSubscription = async (
       plan,
       razorpaySubscriptionId: razorpaySubscription.id,
       razorpayCustomerId: customerId,
-      status: "trial",
+      status: "active",
       nextBillingAt,
       activatedAt: new Date(),
     });
@@ -243,6 +243,6 @@ export const recordPayment = async (
 
 export const isSubscriptionActive = async (userId: string) => {
   const sub = await getSubscription(userId);
-  if (sub.status === "active" || sub.status === "trial") return true;
+  if (sub.status === "active") return true;
   throw new AppError("Active subscription required", 402);
 };
