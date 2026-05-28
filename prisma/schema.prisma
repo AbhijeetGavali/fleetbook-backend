@@ -137,7 +137,7 @@ model Category {
   expenseTypes  Expense[] @relation("ExpenseType")
   expenseSubTypes Expense[] @relation("ExpenseSubType")
 
-  @@unique([type, name])
+  @@unique([type, name, createdBy])
   @@map("categories")
 }
 
