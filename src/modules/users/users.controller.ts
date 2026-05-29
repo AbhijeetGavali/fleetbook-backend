@@ -11,6 +11,7 @@ import { AuthRequest } from "../../shared/types";
 import * as vehicleService from "../vehicles/vehicles.service";
 import { AppError } from "../../shared/middleware/errorHandler";
 import {
+  canAddUser,
   isSubscriptionActive,
   updateSubscriptionAddQuantity,
 } from "../subscription/subscription.service";
@@ -33,7 +34,7 @@ export const getCurrent = asyncHandler(
 );
 
 export const create = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await isSubscriptionActive(req.user!.userId);
+  await canAddUser(req.user!.userId);
   const data = createUserSchema.parse(req.body);
   if (!data.vehicle && !data.assignedVehicle) {
     throw new AppError(

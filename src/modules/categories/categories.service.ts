@@ -2,8 +2,13 @@ import { CategoryType } from "@prisma/client";
 import { AppError } from "../../shared/middleware/errorHandler";
 import { CategoryInput, UpdateCategoryInput } from "./categories.schema";
 import * as repo from "./categories.repo";
+import * as userRepo from "../users/users.repo";
 
-export const getAll = (type?: CategoryType, adminId?: string) => repo.findAll(type, adminId);
+export const getAll = async (type: CategoryType, adminId: string) => {
+  const user = await userRepo.findByuserId(adminId);
+  if (!user) throw new AppError("Admin not found", 404);
+  return await repo.findAll(type, user.assignedToAdmin || adminId);
+};
 
 export const getById = async (id: string, adminId?: string) => {
   const c = await repo.findById(id, adminId);
@@ -14,7 +19,11 @@ export const getById = async (id: string, adminId?: string) => {
 export const create = (data: CategoryInput, createdBy: string) =>
   repo.create({ ...data, createdBy });
 
-export const update = async (id: string, data: UpdateCategoryInput, adminId?: string) => {
+export const update = async (
+  id: string,
+  data: UpdateCategoryInput,
+  adminId?: string,
+) => {
   await getById(id, adminId);
   return repo.update(id, data);
 };

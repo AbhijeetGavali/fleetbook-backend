@@ -67,19 +67,18 @@ export const createRazorpaySubscription = async (
     throw new AppError(`Missing Razorpay plan configured for ${plan}`, 500);
   }
 
-  if (driverCount < 1) {
-    throw new AppError("Driver count must be at least 1", 400);
-  }
+  const finalDriverCount = Math.max(1, driverCount);
 
   const rzpSub = await (rzp.subscriptions as any).create({
     plan_id: planId,
     customer_notify: 1,
-    quantity: driverCount,
+    quantity: finalDriverCount,
     total_count: 1199,
-    start_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // Start after 30 days (trial period)
+    // Start after 30 days (trial period)
+    start_at: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
     notes: {
       app: "FleetBook",
-      driverCount: driverCount.toString(),
+      driverCount: finalDriverCount.toString(),
       plan: plan,
       planId: planId,
       customerId: customerId,

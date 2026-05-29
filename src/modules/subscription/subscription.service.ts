@@ -37,16 +37,19 @@ const trialTerms = (plan?: "monthly" | "annual" | null) => ({
 });
 
 export const getSubscription = async (userId: string) => {
-  const driver = await prisma.user.findUnique({ where: { id: userId } });
-  if (!driver) throw new AppError("User not found", 404);
-  if (!driver.assignedToAdmin) throw new AppError("Admin not found", 404);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError("User not found", 404);
+  
+  const adminId = user.role === "ADMIN" ? user.id : user.assignedToAdmin;
+  if (!adminId) throw new AppError("Admin not found", 404);
 
-  const subscription = await repo.findByAdminId(driver?.assignedToAdmin);
+  const subscription = await repo.findByAdminId(adminId);
 
-  let effectiveSubscription = subscription;
+  const admin = user.role === "ADMIN" ? user : await prisma.user.findUnique({ where: { id: adminId } });
+  if (!admin) throw new AppError("Admin record not found", 404);
 
-  const trialEndFromSignup = addDays(driver.createdAt, TRIAL_DAYS);
-  if (!effectiveSubscription) {
+  const trialEndFromSignup = addDays(admin.createdAt, TRIAL_DAYS);
+  if (!subscription) {
     if (isAfter(trialEndFromSignup, new Date())) {
       return {
         plan: null,
@@ -60,40 +63,42 @@ export const getSubscription = async (userId: string) => {
   }
 
   const now = new Date();
-  if (effectiveSubscription.status === "cancelled") {
-    return { ...effectiveSubscription, status: "cancelled" as const };
+  if (subscription.status === "cancelled") {
+    return { ...subscription, status: "cancelled" as const };
   }
 
+  // If status is trial and trial is not yet over
   if (
-    effectiveSubscription.nextBillingAt &&
-    isAfter(effectiveSubscription.nextBillingAt, now)
+    subscription.status === "trial" &&
+    subscription.nextBillingAt &&
+    isAfter(subscription.nextBillingAt, now)
   ) {
     return {
-      plan: effectiveSubscription.plan as "monthly" | "annual",
+      plan: subscription.plan as "monthly" | "annual",
       status: "trial" as const,
-      nextBillingAt: effectiveSubscription.nextBillingAt,
-      razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
-      activatedAt: effectiveSubscription.activatedAt,
-      ...trialTerms(effectiveSubscription.plan as "monthly" | "annual"),
+      nextBillingAt: subscription.nextBillingAt,
+      razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+      activatedAt: subscription.activatedAt,
+      ...trialTerms(subscription.plan as "monthly" | "annual"),
     };
   }
 
-  if (effectiveSubscription.status === "active") {
+  if (subscription.status === "active") {
     return {
-      plan: effectiveSubscription.plan as "monthly" | "annual",
+      plan: subscription.plan as "monthly" | "annual",
       status: "active" as const,
-      nextBillingAt: effectiveSubscription.nextBillingAt,
-      razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
-      activatedAt: effectiveSubscription.activatedAt,
+      nextBillingAt: subscription.nextBillingAt,
+      razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+      activatedAt: subscription.activatedAt,
     };
   }
 
   return {
-    plan: effectiveSubscription.plan as "monthly" | "annual",
+    plan: subscription.plan as "monthly" | "annual",
     status: "expired" as const,
-    nextBillingAt: effectiveSubscription.nextBillingAt,
-    razorpaySubscriptionId: effectiveSubscription.razorpaySubscriptionId,
-    activatedAt: effectiveSubscription.activatedAt,
+    nextBillingAt: subscription.nextBillingAt,
+    razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+    activatedAt: subscription.activatedAt,
   };
 };
 
@@ -114,15 +119,32 @@ export const createSubscription = async (
     );
   }
 
+  const existing = await repo.findByAdminId(userId);
+  // Gap: If already active and same plan, just return it.
+  if (existing && existing.status === "active" && existing.plan === plan) {
+    return {
+      subscriptionId: existing.razorpaySubscriptionId,
+      checkoutId: existing.razorpaySubscriptionId,
+      api_key: RAZORPAY_KEY_ID,
+      plan,
+      status: existing.status,
+    };
+  }
+
   const customerId = await createOrFindCustomer(
     user.name,
     user.email,
     user.phone,
   );
 
+  const driverCount = await prisma.user.count({
+    where: { assignedToAdmin: userId, role: "DRIVER" }
+  });
+
   const razorpaySubscription = await createRazorpaySubscription(
     customerId,
     plan,
+    driverCount || 1,
   );
 
   const trialEndsAt = new Date(razorpaySubscription.start_at * 1000);
@@ -133,8 +155,6 @@ export const createSubscription = async (
         trialEndsAt.getTime() +
           (plan === "monthly" ? 30 : 365) * 24 * 60 * 60 * 1000,
       );
-
-  const existing = await repo.findByAdminId(userId);
 
   if (existing) {
     await prisma.subscription.update({
@@ -257,4 +277,10 @@ export const isSubscriptionActive = async (userId: string) => {
   const sub = await getSubscription(userId);
   if (sub.status === "active" || sub.status === "trial") return true;
   throw new AppError("Active subscription required", 402);
+};
+
+export const canAddUser = async (userId: string) => {
+  const sub = await getSubscription(userId);
+  if (sub.status === "active") return true;
+  throw new AppError("Active subscription required to add new users", 402);
 };

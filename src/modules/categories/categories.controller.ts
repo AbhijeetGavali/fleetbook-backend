@@ -7,7 +7,7 @@ import { AuthRequest } from "../../shared/types";
 import * as service from "./categories.service";
 
 export const getAll = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const type = req.query.type as CategoryType | undefined;
+  const type = req.query.type as CategoryType;
   sendSuccess(res, await service.getAll(type, req.user!.userId));
 });
 
