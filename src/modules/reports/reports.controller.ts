@@ -18,7 +18,10 @@ const templateSchema = z.object({
 });
 
 export const getFleetStats = asyncHandler(async (req: AuthRequest, res: Response) => {
-  sendSuccess(res, await service.getFleetStats(req.user!.userId));
+  const { startDate, endDate } = req.query;
+  const start = startDate ? new Date(startDate as string) : undefined;
+  const end = endDate ? new Date((endDate as string) + "T23:59:59") : undefined;
+  sendSuccess(res, await service.getFleetStats(req.user!.userId, start, end));
 });
 
 export const getMonthlyReport = asyncHandler(async (req: AuthRequest, res: Response) => {

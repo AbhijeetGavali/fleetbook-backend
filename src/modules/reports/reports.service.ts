@@ -15,7 +15,11 @@ import * as repo from "./reports.repo";
 import { logger } from "../../shared/utils/logger";
 import { isSubscriptionActive } from "../subscription/subscription.service";
 
-export const getFleetStats = (adminId: string) => repo.getFleetStats(adminId);
+export const getFleetStats = (
+  adminId: string,
+  startDate?: Date,
+  endDate?: Date,
+) => repo.getFleetStats(adminId, startDate, endDate);
 
 export const generateAndSendReport = async (
   userId: string,

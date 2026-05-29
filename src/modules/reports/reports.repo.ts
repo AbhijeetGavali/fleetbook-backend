@@ -24,13 +24,20 @@ export const getReportData = async (
   return { incomes, expenses, fuel };
 };
 
-export const getFleetStats = async (adminId: string) => {
+export const getFleetStats = async (
+  adminId: string,
+  startDate?: Date,
+  endDate?: Date,
+) => {
   // Get driver IDs under this admin for scoped aggregations
   const adminDrivers = await prisma.user.findMany({
     where: { role: "DRIVER", assignedToAdmin: adminId },
     select: { id: true },
   });
   const driverIds = adminDrivers.map((d) => d.id);
+
+  const dateFilter =
+    startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
 
   const [driverCount, vehicleCount, incomeSum, expenseSum, fuelSum] =
     await Promise.all([
@@ -39,15 +46,15 @@ export const getFleetStats = async (adminId: string) => {
       }),
       prisma.vehicle.count({ where: { assignedToAdmin: adminId } }),
       prisma.income.aggregate({
-        where: { userId: { in: driverIds } },
+        where: { userId: { in: driverIds }, ...dateFilter },
         _sum: { amount: true },
       }),
       prisma.expense.aggregate({
-        where: { userId: { in: driverIds } },
+        where: { userId: { in: driverIds }, ...dateFilter },
         _sum: { amount: true },
       }),
       prisma.fuelRecord.aggregate({
-        where: { userId: { in: driverIds } },
+        where: { userId: { in: driverIds }, ...dateFilter },
         _sum: { costInr: true },
       }),
     ]);
