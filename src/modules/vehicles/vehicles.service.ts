@@ -1,11 +1,14 @@
 import { AppError } from "../../shared/middleware/errorHandler";
 import { VehicleInput, UpdateVehicleInput } from "./vehicles.schema";
 import * as repo from "./vehicles.repo";
+import * as userRepo from "../users/users.repo";
 
 export const getAll = (adminId: string) => repo.findAll(adminId);
 
 export const getById = async (id: string, adminId: string) => {
-  const v = await repo.findById(id, adminId);
+  const u = await userRepo.findByuserId(adminId);
+  if (!u) throw new AppError("User user not found", 404);
+  const v = await repo.findById(id, u.assignedToAdmin || adminId);
   if (!v) throw new AppError("Vehicle not found", 404);
   return v;
 };

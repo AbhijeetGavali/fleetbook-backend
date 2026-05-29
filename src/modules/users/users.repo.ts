@@ -19,6 +19,12 @@ export const findAll = (adminId: string) =>
     orderBy: { name: "asc" },
   });
 
+export const findByuserId = (id: string) =>
+  prisma.user.findUnique({
+    where: { id },
+    select: { ...safeSelect, assignedToAdmin: true },
+  });
+
 export const findById = (id: string, adminId: string) =>
   prisma.user.findUnique({
     where: { id, assignedToAdmin: adminId },
