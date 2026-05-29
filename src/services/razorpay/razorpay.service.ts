@@ -36,20 +36,30 @@ export const createOrFindCustomer = async (
     key_secret: RAZORPAY_KEY_SECRET,
   });
 
-  const rzpCus = await (rzp.customers as any).create({
-    name,
-    email,
-    contact,
-    fail_existing: 0,
-    notes: {
-      type: "customer",
-      app: "FleetBook",
-      plan: "monthly",
-      vendorId: "Abhijeet Gavali <FleetBook>",
-    },
-  });
-
-  return rzpCus.id as string;
+  try {
+    const rzpCus = await (rzp.customers as any).create({
+      name,
+      email,
+      contact,
+      fail_existing: 0,
+      notes: {
+        type: "customer",
+        app: "FleetBook",
+        plan: "monthly",
+        vendorId: "Abhijeet Gavali <FleetBook>",
+      },
+    });
+    return rzpCus.id as string;
+  } catch (err: any) {
+    // If customer already exists, try to find the customer by email
+    if (err.error?.code === "BAD_REQUEST_ERROR" && err.error?.description?.includes("Customer already exists")) {
+      const customers = await (rzp.customers as any).all({ email });
+      if (customers.items && customers.items.length > 0) {
+        return customers.items[0].id as string;
+      }
+    }
+    throw err;
+  }
 };
 
 export const createRazorpaySubscription = async (
